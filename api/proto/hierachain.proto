@@ -1,0 +1,81 @@
+syntax = "proto3";
+package hierachain;
+
+option go_package = "github.com/VanDung-dev/HieraChain-Engine/api/proto";
+
+// HieraChainEngine is the main service for transaction processing.
+service HieraChainEngine {
+  // SubmitBatch submits a batch of transactions for processing.
+  rpc SubmitBatch(TransactionBatch) returns (BatchResult);
+  
+  // StreamTransactions streams transactions for high-throughput processing.
+  rpc StreamTransactions(stream Transaction) returns (stream TxStatus);
+  
+  // HealthCheck returns the health status of the engine.
+  rpc HealthCheck(Empty) returns (HealthResponse);
+}
+
+// Transaction represents a single blockchain transaction.
+message Transaction {
+  string tx_id = 1;
+  string entity_id = 2;
+  string event_type = 3;
+  bytes arrow_payload = 4;  // Arrow IPC serialized payload
+  string signature = 5;
+  double timestamp = 6;
+  map<string, string> details = 7;
+}
+
+// TransactionBatch is a collection of transactions for batch processing.
+message TransactionBatch {
+  repeated Transaction transactions = 1;
+}
+
+// BatchResult contains the result of batch transaction processing.
+message BatchResult {
+  bool success = 1;
+  string message = 2;
+  repeated string processed_tx_ids = 3;
+  int64 processing_time_ms = 4;
+  repeated TxError errors = 5;
+}
+
+// TxError represents an error for a specific transaction.
+message TxError {
+  string tx_id = 1;
+  string error_message = 2;
+  string error_code = 3;
+}
+
+// TxStatus represents the status of a transaction.
+message TxStatus {
+  string tx_id = 1;
+  Status status = 2;
+  int64 timestamp = 3;
+  string block_hash = 4;
+  
+  enum Status {
+    PENDING = 0;
+    CONFIRMED = 1;
+    FAILED = 2;
+  }
+}
+
+// Empty is an empty message for requests that don't need parameters.
+message Empty {}
+
+// HealthResponse contains the health status of the engine.
+message HealthResponse {
+  bool healthy = 1;
+  string version = 2;
+  int64 uptime_seconds = 3;
+  EngineStats stats = 4;
+}
+
+// EngineStats contains runtime statistics.
+message EngineStats {
+  int64 transactions_processed = 1;
+  int64 blocks_created = 2;
+  int64 pending_transactions = 3;
+  double avg_processing_time_ms = 4;
+}
