@@ -1,26 +1,26 @@
-package bridge
+package integration
 
 import (
-	"github.com/VanDung-dev/HieraChain-Engine/arrow"
+	data "github.com/VanDung-dev/HieraChain-Engine/hierachain-engine/data"
 	arrowlib "github.com/apache/arrow-go/v18/arrow"
 )
 
 // BridgeSerializeForRust converts a Go Arrow Record to IPC bytes for Rust processing.
 func BridgeSerializeForRust(record arrowlib.Record) ([]byte, error) {
-	writer := arrow.NewIPCWriter()
+	writer := data.NewIPCWriter()
 	return writer.SerializeToIPC(record)
 }
 
 // BridgeDeserializeFromRust converts Rust Arrow IPC bytes to a Go Arrow Record.
 func BridgeDeserializeFromRust(ipcBytes []byte) (arrowlib.Record, error) {
-	writer := arrow.NewIPCWriter()
+	writer := data.NewIPCWriter()
 	return writer.DeserializeFromIPC(ipcBytes)
 }
 
 // ProcessEventsViaRust converts events to Arrow, processes through Rust, and returns Arrow.
 // This provides a seamless Go <-> Rust data pipeline using Arrow IPC.
-func ProcessEventsViaRust(events []arrow.EventJSON) (arrowlib.Record, error) {
-	converter := arrow.NewConverter()
+func ProcessEventsViaRust(events []data.EventJSON) (arrowlib.Record, error) {
+	converter := data.NewConverter()
 
 	// Convert events to Arrow
 	record, err := converter.EventsToArrowBatch(events)

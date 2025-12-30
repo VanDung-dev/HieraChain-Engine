@@ -1,7 +1,7 @@
-// Package arrow provides Apache Arrow schema definitions matching HieraChain-Consensus (Rust).
+// Package data provides Apache Arrow schema definitions matching HieraChain-Consensus (Rust).
 // Schemas defined here MUST match exactly with src/core/schemas.rs to ensure
 // Arrow IPC compatibility between Go and Rust components.
-package arrow
+package data
 
 import (
 	"github.com/apache/arrow-go/v18/arrow"

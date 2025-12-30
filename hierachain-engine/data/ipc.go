@@ -1,5 +1,5 @@
-// Package arrow provides Arrow IPC serialization for zero-copy data transfer.
-package arrow
+// Package data provides Arrow IPC serialization for zero-copy data transfer.
+package data
 
 import (
 	"bytes"

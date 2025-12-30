@@ -3,4 +3,4 @@
 // - Worker pool with goroutines (replacing Python's ThreadPool)
 // - Transaction ordering service
 // - Mempool management
-package engine
+package core

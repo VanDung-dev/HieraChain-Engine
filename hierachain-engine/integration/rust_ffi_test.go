@@ -4,7 +4,7 @@
 // These tests require the Rust library to be built first.
 // Run: cargo build --release
 
-package bridge
+package integration
 
 import (
 	"encoding/json"

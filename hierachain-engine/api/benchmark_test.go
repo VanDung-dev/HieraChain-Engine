@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	pb "github.com/VanDung-dev/HieraChain-Engine/api/proto"
+	pb "github.com/VanDung-dev/HieraChain-Engine/hierachain-engine/api/proto"
 )
 
 // BenchmarkSubmitBatch_100 benchmarks processing 100 transactions.

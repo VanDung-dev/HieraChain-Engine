@@ -10,8 +10,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	pb "github.com/VanDung-dev/HieraChain-Engine/api/proto"
-	"github.com/VanDung-dev/HieraChain-Engine/engine"
+	pb "github.com/VanDung-dev/HieraChain-Engine/hierachain-engine/api/proto"
+	"github.com/VanDung-dev/HieraChain-Engine/hierachain-engine/core"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -25,8 +25,8 @@ type Server struct {
 	pb.UnimplementedHieraChainEngineServer
 
 	// Core components
-	workerPool *engine.WorkerPool
-	mempool    *engine.Mempool
+	workerPool *core.WorkerPool
+	mempool    *core.Mempool
 
 	// Metrics
 	metrics *Metrics
@@ -87,8 +87,8 @@ func NewServer(config *ServerConfig) (*Server, error) {
 	}
 
 	s := &Server{
-		workerPool: engine.NewWorkerPool("grpc-workers", config.WorkerPoolSize),
-		mempool:    engine.NewMempool(config.MempoolSize),
+		workerPool: core.NewWorkerPool("grpc-workers", config.WorkerPoolSize),
+		mempool:    core.NewMempool(config.MempoolSize),
 		metrics:    DefaultMetrics,
 		startTime:  time.Now(),
 		running:    false,
@@ -309,7 +309,7 @@ func (s *Server) processTransaction(ctx context.Context, tx *pb.Transaction) err
 	}
 
 	// Create internal transaction
-	internalTx := &engine.Transaction{
+	internalTx := &core.Transaction{
 		ID:        tx.TxId,
 		EntityID:  tx.EntityId,
 		EventType: tx.EventType,
@@ -330,9 +330,9 @@ func (s *Server) processTransaction(ctx context.Context, tx *pb.Transaction) err
 	}
 
 	// Submit to worker pool for processing
-	task := engine.NewTask(tx.TxId, internalTx, func(data interface{}) (interface{}, error) {
+	task := core.NewTask(tx.TxId, internalTx, func(data interface{}) (interface{}, error) {
 		// Transaction processing logic
-		txData := data.(*engine.Transaction)
+		txData := data.(*core.Transaction)
 		_ = txData // Placeholder for actual processing
 		return txData, nil
 	})
@@ -348,12 +348,12 @@ func (s *Server) processTransaction(ctx context.Context, tx *pb.Transaction) err
 }
 
 // GetMempool returns the mempool for external access.
-func (s *Server) GetMempool() *engine.Mempool {
+func (s *Server) GetMempool() *core.Mempool {
 	return s.mempool
 }
 
 // GetWorkerPool returns the worker pool for external access.
-func (s *Server) GetWorkerPool() *engine.WorkerPool {
+func (s *Server) GetWorkerPool() *core.WorkerPool {
 	return s.workerPool
 }
 

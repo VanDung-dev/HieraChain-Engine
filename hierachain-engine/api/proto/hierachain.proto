@@ -1,7 +1,7 @@
 syntax = "proto3";
 package hierachain;
 
-option go_package = "github.com/VanDung-dev/HieraChain-Engine/api/proto";
+option go_package = "github.com/VanDung-dev/HieraChain-Engine/hierachain-engine/api/proto";
 
 // HieraChainEngine is the main service for transaction processing.
 service HieraChainEngine {

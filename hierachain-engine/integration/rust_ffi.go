@@ -1,4 +1,4 @@
-package bridge
+package integration
 
 /*
 #cgo CFLAGS: -I${SRCDIR}/../include

@@ -1,4 +1,4 @@
-// Package bridge provides integration with the Rust Consensus library.
+// Package integration provides integration with the Rust Consensus library.
 //
 // This package contains:
 //   - CGO bindings to Rust FFI functions (rust_ffi.go)
@@ -12,4 +12,4 @@
 // The static library will be created at:
 //   - Windows: target/release/hierachain_consensus.lib
 //   - Linux/macOS: target/release/libhierachain_consensus.a
-package bridge
+package integration
