@@ -85,6 +85,22 @@ func (p *Propagator) Propagate(msgType string, payload map[string]interface{}) e
 	return p.node.Broadcast(payload, nil)
 }
 
+// PropagateBlock broadcasts a block to all peers.
+func (p *Propagator) PropagateBlock(blockData []byte) error {
+	return p.Propagate("block", map[string]interface{}{
+		"action": "new_block",
+		"data":   string(blockData),
+	})
+}
+
+// PropagateTransaction broadcasts a transaction to all peers.
+func (p *Propagator) PropagateTransaction(txData []byte) error {
+	return p.Propagate("transaction", map[string]interface{}{
+		"action": "new_transaction",
+		"data":   string(txData),
+	})
+}
+
 // HandleIncoming processes an incoming message for propagation.
 // Returns true if the message should be processed, false if it's a duplicate.
 func (p *Propagator) HandleIncoming(msg *Message) bool {
