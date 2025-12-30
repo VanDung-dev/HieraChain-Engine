@@ -12,7 +12,7 @@ import (
 
 // Version information
 const (
-	Version = "0.0.0.dev1"
+	Version = "0.0.1.dev1"
 	Name    = "HieraChain-Engine"
 )
 
