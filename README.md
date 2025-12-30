@@ -95,4 +95,6 @@ protoc --go_out=. --go-grpc_out=. api/proto/hierachain.proto
 
 ## License
 
-MIT
+This project is dual licensed under either the [Apache-2.0 License](LICENSE-APACHE) or the [MIT License](LICENSE-MIT). You may choose either license.
+
+---
