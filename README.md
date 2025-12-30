@@ -31,32 +31,42 @@ go version
 
 # Protocol Buffers
 protoc --version
+
+# (Optional) Rust for integration module
+rustc --version
+cargo --version
 ```
 
 ### Build
 
 ```bash
-# Build all
-go build ./...
+# Build all packages (excluding CGO/Rust integration)
+go build ./hierachain-engine/...
 
-# Run tests
-go test ./... -v
+# Build with CGO (requires Rust library)
+# First: cargo build --release
+CGO_ENABLED=1 go build ./...
+
+# Build main application
+go build -o hierachain ./cmd/hierachain/
+```
+
+### Run Tests
+
+```bash
+# Run all tests
+go test ./hierachain-engine/... -v
+
+# Run short tests only
+go test ./hierachain-engine/... -short
 
 # Run benchmarks
-go test ./api/... -bench=. -benchtime=3s
-```
+go test ./hierachain-engine/api/... -bench=. -benchtime=3s
 
-### Project Structure
-
-```
-├── api/              # gRPC server, metrics
-│   ├── grpc_server.go
-│   ├── metrics.go
-│   └── proto/        # Protobuf definitions
-├── arrow/            # Arrow schema, IPC
-├── bridge/           # Rust FFI bindings
-├── engine/           # Worker pool, mempool
-└── network/          # ZeroMQ, P2P
+# Run specific package tests
+go test ./hierachain-engine/core/... -v
+go test ./hierachain-engine/data/... -v
+go test ./hierachain-engine/network/... -v
 ```
 
 ### Run gRPC Server
@@ -65,7 +75,7 @@ go test ./api/... -bench=. -benchtime=3s
 package main
 
 import (
-    "github.com/VanDung-dev/HieraChain-Engine/api"
+    "github.com/VanDung-dev/HieraChain-Engine/hierachain-engine/api"
 )
 
 func main() {
@@ -81,7 +91,7 @@ func main() {
 ### Generate Protobuf
 
 ```bash
-protoc --go_out=. --go-grpc_out=. api/proto/hierachain.proto
+protoc --go_out=. --go-grpc_out=. hierachain-engine/api/proto/hierachain.proto
 ```
 
 ### Environment Variables
@@ -90,6 +100,13 @@ protoc --go_out=. --go-grpc_out=. api/proto/hierachain.proto
 |:---------|:--------|:------------|
 | `HIE_USE_GO_ENGINE` | `false` | Enable Go Engine |
 | `HIE_GO_ENGINE_ADDRESS` | `localhost:50051` | gRPC address |
+
+---
+
+## Related Repositories
+
+- [HieraChain](https://github.com/VanDung-dev/HieraChain) - Python framework
+- [HieraChain-Consensus](https://github.com/VanDung-dev/HieraChain-Consensus) - Rust consensus library
 
 ---
 
