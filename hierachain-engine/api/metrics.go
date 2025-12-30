@@ -27,10 +27,6 @@ type Metrics struct {
 	MempoolSize       prometheus.Gauge
 	WorkerPoolActive  prometheus.Gauge
 	WorkerPoolPending prometheus.Gauge
-
-	// gRPC metrics
-	GRPCRequestsTotal   *prometheus.CounterVec
-	GRPCRequestDuration *prometheus.HistogramVec
 }
 
 // DefaultMetrics creates metrics with default settings.
@@ -94,18 +90,6 @@ func NewMetrics(namespace string) *Metrics {
 			Name:      "worker_pool_pending",
 			Help:      "Number of pending tasks in worker pool",
 		}),
-
-		GRPCRequestsTotal: promauto.NewCounterVec(prometheus.CounterOpts{
-			Namespace: namespace,
-			Name:      "grpc_requests_total",
-			Help:      "Total gRPC requests by method and status",
-		}, []string{"method", "status"}),
-		GRPCRequestDuration: promauto.NewHistogramVec(prometheus.HistogramOpts{
-			Namespace: namespace,
-			Name:      "grpc_request_duration_seconds",
-			Help:      "gRPC request duration by method",
-			Buckets:   prometheus.DefBuckets,
-		}, []string{"method"}),
 	}
 }
 
@@ -125,12 +109,6 @@ func (m *Metrics) RecordBatch(size int, duration time.Duration) {
 	m.BatchesTotal.Inc()
 	m.BatchSize.Observe(float64(size))
 	m.BatchLatency.Observe(duration.Seconds())
-}
-
-// RecordGRPCRequest records a gRPC request.
-func (m *Metrics) RecordGRPCRequest(method, status string, duration time.Duration) {
-	m.GRPCRequestsTotal.WithLabelValues(method, status).Inc()
-	m.GRPCRequestDuration.WithLabelValues(method).Observe(duration.Seconds())
 }
 
 // UpdateMempoolSize updates the mempool gauge.
