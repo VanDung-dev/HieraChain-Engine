@@ -1,6 +1,6 @@
 # HieraChain-Engine
 
-High-performance blockchain engine for supply chain transparency, built with **Go + Rust + Python**.
+HieraChain engine is a high-concurrency infrastructure layer built on Go
 
 ## Architecture
 
