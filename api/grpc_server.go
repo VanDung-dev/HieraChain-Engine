@@ -28,10 +28,14 @@ type Server struct {
 	workerPool *engine.WorkerPool
 	mempool    *engine.Mempool
 
+	// Metrics
+	metrics *Metrics
+
 	// Server state
-	grpcServer *grpc.Server
-	listener   net.Listener
-	startTime  time.Time
+	grpcServer    *grpc.Server
+	metricsServer *MetricsServer
+	listener      net.Listener
+	startTime     time.Time
 
 	// Statistics (atomic for thread-safety)
 	txProcessed   int64
@@ -47,6 +51,9 @@ type Server struct {
 type ServerConfig struct {
 	// Address to listen on (e.g., ":50051")
 	Address string
+
+	// MetricsAddress for Prometheus metrics (e.g., ":2112")
+	MetricsAddress string
 
 	// WorkerPoolSize is the number of workers for processing transactions
 	WorkerPoolSize int
@@ -65,6 +72,7 @@ type ServerConfig struct {
 func DefaultServerConfig() *ServerConfig {
 	return &ServerConfig{
 		Address:        ":50051",
+		MetricsAddress: ":2112",
 		WorkerPoolSize: 100,
 		MempoolSize:    10000,
 		MaxRecvMsgSize: 16 * 1024 * 1024, // 16MB
@@ -78,12 +86,20 @@ func NewServer(config *ServerConfig) (*Server, error) {
 		config = DefaultServerConfig()
 	}
 
-	return &Server{
+	s := &Server{
 		workerPool: engine.NewWorkerPool("grpc-workers", config.WorkerPoolSize),
 		mempool:    engine.NewMempool(config.MempoolSize),
+		metrics:    DefaultMetrics,
 		startTime:  time.Now(),
 		running:    false,
-	}, nil
+	}
+
+	// Initialize metrics server if address is provided
+	if config.MetricsAddress != "" {
+		s.metricsServer = NewMetricsServer(config.MetricsAddress)
+	}
+
+	return s, nil
 }
 
 // Start starts the gRPC server on the configured address.
@@ -170,30 +186,42 @@ func (s *Server) Stop() {
 
 // SubmitBatch processes a batch of transactions.
 func (s *Server) SubmitBatch(ctx context.Context, req *pb.TransactionBatch) (*pb.BatchResult, error) {
+	start := time.Now()
+	defer func() {
+		s.metrics.RecordGRPCRequest("SubmitBatch", "OK", time.Since(start))
+	}()
+
 	if req == nil || len(req.Transactions) == 0 {
+		s.metrics.RecordGRPCRequest("SubmitBatch", "INVALID_ARGUMENT", time.Since(start))
 		return nil, status.Error(codes.InvalidArgument, "empty transaction batch")
 	}
 
-	start := time.Now()
 	processedIDs := make([]string, 0, len(req.Transactions))
 	errors := make([]*pb.TxError, 0)
 
 	// Process each transaction
 	for _, tx := range req.Transactions {
+		txStart := time.Now()
 		if err := s.processTransaction(ctx, tx); err != nil {
 			errors = append(errors, &pb.TxError{
 				TxId:         tx.TxId,
 				ErrorMessage: err.Error(),
 				ErrorCode:    "PROCESSING_ERROR",
 			})
+			s.metrics.RecordTransaction(false, time.Since(txStart))
 		} else {
 			processedIDs = append(processedIDs, tx.TxId)
 			atomic.AddInt64(&s.txProcessed, 1)
+			s.metrics.RecordTransaction(true, time.Since(txStart))
 		}
 	}
 
 	processingTime := time.Since(start)
 	atomic.AddInt64(&s.totalTime, processingTime.Nanoseconds())
+
+	// Record batch metrics
+	s.metrics.RecordBatch(len(req.Transactions), processingTime)
+	s.metrics.UpdateMempoolSize(s.mempool.Stats().Size)
 
 	return &pb.BatchResult{
 		Success:          len(errors) == 0,
