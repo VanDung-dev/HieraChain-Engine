@@ -110,3 +110,27 @@ func BlockSchema() *arrow.Schema {
 		nil,
 	)
 }
+
+// TransactionSchema returns the Arrow schema for a Transaction.
+// Matches Rust: src/core/schemas.rs::get_transaction_schema()
+func TransactionSchema() *arrow.Schema {
+	return arrow.NewSchema(
+		[]arrow.Field{
+			{Name: "tx_id", Type: arrow.BinaryTypes.String, Nullable: false},
+			{Name: "entity_id", Type: arrow.BinaryTypes.String, Nullable: false},
+			{Name: "event_type", Type: arrow.BinaryTypes.String, Nullable: false},
+			{Name: "arrow_payload", Type: arrow.BinaryTypes.Binary, Nullable: true},
+			{Name: "signature", Type: arrow.BinaryTypes.String, Nullable: true},
+			{Name: "timestamp", Type: arrow.PrimitiveTypes.Float64, Nullable: false},
+			{
+				Name: "details",
+				Type: arrow.MapOf(
+					arrow.BinaryTypes.String,
+					arrow.BinaryTypes.String,
+				),
+				Nullable: true,
+			},
+		},
+		nil,
+	)
+}
