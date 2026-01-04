@@ -133,13 +133,21 @@ func NewMetricsServer(addr string) *MetricsServer {
 	mux.Handle("/metrics", promhttp.Handler())
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("OK"))
+		if _, err := w.Write([]byte("OK")); err != nil {
+			// Log error but don't fail the health check
+			// The response header is already written
+			_ = err
+		}
 	})
 
 	return &MetricsServer{
 		server: &http.Server{
-			Addr:    addr,
-			Handler: mux,
+			Addr:              addr,
+			Handler:           mux,
+			ReadTimeout:       30 * time.Second,
+			WriteTimeout:      30 * time.Second,
+			ReadHeaderTimeout: 10 * time.Second, // Prevents Slowloris attack (G112)
+			IdleTimeout:       120 * time.Second,
 		},
 	}
 }

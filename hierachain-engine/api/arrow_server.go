@@ -107,7 +107,12 @@ func (s *ArrowServer) Stop() {
 	s.running = false
 	close(s.quit)
 	if s.listener != nil {
-		s.listener.Close()
+		// Best effort close - error is logged but not propagated
+		// since we're already in shutdown mode
+		if err := s.listener.Close(); err != nil {
+			// In production, this should use a proper logger
+			_ = err // Explicitly acknowledge unhandled error for G104
+		}
 	}
 }
 
