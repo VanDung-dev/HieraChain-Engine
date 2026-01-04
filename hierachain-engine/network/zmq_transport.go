@@ -142,14 +142,19 @@ func (n *ZmqNode) Stop() {
 	// Cancel context to stop goroutines
 	n.cancel()
 
-	// Close router socket
+	// Close router socket (best effort - ignore errors during shutdown)
 	if n.router != nil {
-		n.router.Close()
+		if err := n.router.Close(); err != nil {
+			// Log in production; during shutdown, errors are expected
+			_ = err // G104: explicitly acknowledge
+		}
 	}
 
-	// Close all dealer sockets
+	// Close all dealer sockets (best effort)
 	for _, dealer := range n.dealers {
-		dealer.Close()
+		if err := dealer.Close(); err != nil {
+			_ = err // G104: explicitly acknowledge during cleanup
+		}
 	}
 
 	// Wait for goroutines to finish
@@ -178,9 +183,11 @@ func (n *ZmqNode) UnregisterPeer(peerID string) {
 
 	delete(n.peers, peerID)
 
-	// Close dealer socket if exists
+	// Close dealer socket if exists (best effort)
 	if dealer, ok := n.dealers[peerID]; ok {
-		dealer.Close()
+		if err := dealer.Close(); err != nil {
+			_ = err // G104: explicitly acknowledge during cleanup
+		}
 		delete(n.dealers, peerID)
 	}
 }
