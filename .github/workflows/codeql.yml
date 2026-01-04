@@ -30,6 +30,10 @@ jobs:
         uses: github/codeql-action/init@v4
         with:
           languages: go
+          config: |
+            paths-ignore:
+              - scripts/**
+              - .github/**
 
       - name: Autobuild
         uses: github/codeql-action/autobuild@v4
