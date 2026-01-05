@@ -127,6 +127,17 @@ func (p *WorkerPool) processTask(workerID int, task *Task) {
 		WorkerID: workerID,
 	}
 
+	// Panic recovery to prevent one task from crashing the entire pool
+	defer func() {
+		if r := recover(); r != nil {
+			result.Success = false
+			result.Error = errors.New("panic in task processing: " + panicToString(r))
+			result.Duration = time.Since(start)
+			atomic.AddInt64(&p.failed, 1)
+			p.sendResult(result)
+		}
+	}()
+
 	// Check context cancellation
 	if task.Ctx != nil {
 		select {
@@ -161,6 +172,18 @@ func (p *WorkerPool) processTask(workerID int, task *Task) {
 	}
 
 	p.sendResult(result)
+}
+
+// panicToString converts a recovered panic value to a string.
+func panicToString(r interface{}) string {
+	switch v := r.(type) {
+	case string:
+		return v
+	case error:
+		return v.Error()
+	default:
+		return "unknown panic"
+	}
 }
 
 // sendResult sends a result to the result channel (non-blocking).
