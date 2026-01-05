@@ -24,6 +24,10 @@ var (
 	ErrSendFailed     = errors.New("failed to send message")
 )
 
+// MaxNetworkMessageSize is the maximum allowed size for network messages (10MB).
+// This prevents DoS attacks via oversized messages.
+const MaxNetworkMessageSize = 10 * 1024 * 1024 // 10MB
+
 // PeerInfo contains information about a network peer.
 type PeerInfo struct {
 	ID        string    `json:"id"`
@@ -339,9 +343,15 @@ func (n *ZmqNode) receiverLoop() {
 				}
 			}
 
+			// Check message size to prevent DoS
+			msgBytes := msg.Bytes()
+			if len(msgBytes) > MaxNetworkMessageSize {
+				continue // Drop oversized messages
+			}
+
 			// Parse message
 			var netMsg Message
-			if err := json.Unmarshal(msg.Bytes(), &netMsg); err != nil {
+			if err := json.Unmarshal(msgBytes, &netMsg); err != nil {
 				continue
 			}
 
