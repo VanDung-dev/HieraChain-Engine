@@ -3,7 +3,7 @@
 ![Go Version](https://img.shields.io/badge/go-1.24+-00ADD8?logo=go)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE-APACHE)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE-MIT)
-![Version](https://img.shields.io/badge/version-0.0.1.dev1-orange)
+![Version](https://img.shields.io/badge/version-0.0.1.dev2-orange)
 
 **English** | [Tiếng Việt](README_vi.md)
 
