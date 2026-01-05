@@ -20,12 +20,23 @@ func main() {
 	fmt.Printf("%s v%s\n", Name, Version)
 	fmt.Println("High-performance Go engine for HieraChain blockchain")
 
-	address := ":50051"
+	// Default to localhost only for security - prevents external access
+	// Set HIE_GO_ENGINE_ADDRESS environment variable to override (e.g., "0.0.0.0:50051" for external access)
+	address := "127.0.0.1:50051"
 	if envAddr := os.Getenv("HIE_GO_ENGINE_ADDRESS"); envAddr != "" {
 		address = envAddr
 	}
 
 	server := api.NewArrowServer()
+
+	// Display auth status
+	if server.IsAuthEnabled() {
+		log.Printf("Authentication: ENABLED")
+		log.Printf("Auth Token: %s", server.GetAuthToken())
+		log.Printf("Clients must send auth message first: {\"type\":\"auth\",\"token\":\"<token>\"}")
+	} else {
+		log.Printf("Authentication: DISABLED (set HIE_AUTH_ENABLED=true to enable)")
+	}
 
 	log.Printf("Starting Arrow Server on %s...", address)
 
