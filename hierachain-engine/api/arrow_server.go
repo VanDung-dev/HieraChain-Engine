@@ -5,6 +5,17 @@ import (
 	"io"
 	"net"
 	"sync"
+	"time"
+)
+
+// Connection timeout constants for security
+const (
+	// ConnectionReadTimeout is the maximum time to wait for a complete message read
+	ConnectionReadTimeout = 30 * time.Second
+	// ConnectionWriteTimeout is the maximum time to wait for a complete message write
+	ConnectionWriteTimeout = 30 * time.Second
+	// ConnectionIdleTimeout is the maximum time a connection can remain idle
+	ConnectionIdleTimeout = 120 * time.Second
 )
 
 // ArrowServer is a TCP server that listens for Arrow IPC messages.
@@ -128,10 +139,16 @@ func (s *ArrowServer) handleConnection(conn net.Conn) {
 	}()
 
 	for {
+		// Set read deadline to prevent Slowloris-style attacks
+		if err := conn.SetReadDeadline(time.Now().Add(ConnectionReadTimeout)); err != nil {
+			return
+		}
+
 		// 1. Read request message
 		data, err := ReadMessage(conn)
 		if err != nil {
 			if err != io.EOF {
+				// Timeout or other error - close connection
 				// fmt.Printf("Error reading message: %v\n", err)
 			}
 			return
@@ -143,6 +160,11 @@ func (s *ArrowServer) handleConnection(conn net.Conn) {
 			// Send error response? For now, we might just close connection or log
 			// Or send a specific error packet
 			fmt.Printf("Error processing batch: %v\n", err)
+			return
+		}
+
+		// Set write deadline
+		if err := conn.SetWriteDeadline(time.Now().Add(ConnectionWriteTimeout)); err != nil {
 			return
 		}
 
