@@ -35,6 +35,13 @@ const (
 	FFIErrorInternal    = -5
 )
 
+// MaxFFIInputSize is the maximum allowed input size for FFI calls (100MB).
+// This prevents memory exhaustion from oversized inputs.
+const MaxFFIInputSize = 100 * 1024 * 1024 // 100MB
+
+// ErrFFIInputTooLarge is returned when FFI input exceeds MaxFFIInputSize.
+var ErrFFIInputTooLarge = errors.New("ffi input size exceeds maximum allowed")
+
 // ffiCodeToError converts FFI error code to Go error
 func ffiCodeToError(code C.int32_t) error {
 	switch code {
@@ -61,6 +68,9 @@ func ffiCodeToError(code C.int32_t) error {
 func RustMerkleRoot(eventsJSON []byte) (string, error) {
 	if len(eventsJSON) == 0 {
 		return "", errors.New("empty events JSON")
+	}
+	if len(eventsJSON) > MaxFFIInputSize {
+		return "", ErrFFIInputTooLarge
 	}
 
 	cJSON := C.CString(string(eventsJSON))
@@ -93,6 +103,9 @@ func RustBlockHash(blockJSON []byte) (string, error) {
 	if len(blockJSON) == 0 {
 		return "", errors.New("empty block JSON")
 	}
+	if len(blockJSON) > MaxFFIInputSize {
+		return "", ErrFFIInputTooLarge
+	}
 
 	cJSON := C.CString(string(blockJSON))
 	defer C.free(unsafe.Pointer(cJSON))
@@ -124,6 +137,9 @@ func RustValidateTransactions(transactionsJSON []byte) (bool, error) {
 	if len(transactionsJSON) == 0 {
 		return false, errors.New("empty transactions JSON")
 	}
+	if len(transactionsJSON) > MaxFFIInputSize {
+		return false, ErrFFIInputTooLarge
+	}
 
 	cJSON := C.CString(string(transactionsJSON))
 	defer C.free(unsafe.Pointer(cJSON))
@@ -142,6 +158,9 @@ func RustValidateTransactions(transactionsJSON []byte) (bool, error) {
 func RustProcessArrowBatch(arrowIPC []byte) ([]byte, error) {
 	if len(arrowIPC) == 0 {
 		return nil, errors.New("empty arrow IPC data")
+	}
+	if len(arrowIPC) > MaxFFIInputSize {
+		return nil, ErrFFIInputTooLarge
 	}
 
 	// Allocate result buffer (same size or larger)
