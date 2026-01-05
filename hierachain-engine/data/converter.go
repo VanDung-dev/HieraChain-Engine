@@ -75,7 +75,7 @@ func (c *Converter) EventsToArrowBatch(events []EventJSON) (arrow.Record, error)
 		eventBuilder.Append(event.Event)
 		timestampBuilder.Append(event.Timestamp)
 
-		if event.Details != nil && len(event.Details) > 0 {
+		if len(event.Details) > 0 {
 			detailsBuilder.Append(true)
 			for k, v := range event.Details {
 				keyBuilder.Append(k)
@@ -110,27 +110,54 @@ func (c *Converter) ArrowBatchToJSON(record arrow.Record) ([]byte, error) {
 		return []byte("[]"), nil
 	}
 
-	events := make([]EventJSON, record.NumRows())
+	// Validate column count to prevent index out of bounds
+	if record.NumCols() < 5 {
+		return nil, fmt.Errorf("invalid record: expected at least 5 columns, got %d", record.NumCols())
+	}
 
-	entityIDCol := record.Column(0).(*array.String)
-	eventCol := record.Column(1).(*array.String)
-	timestampCol := record.Column(2).(*array.Float64)
-	detailsCol := record.Column(3).(*array.Map)
-	dataCol := record.Column(4).(*array.Binary)
+	// Safe type assertions with error checking
+	entityIDCol, ok := record.Column(0).(*array.String)
+	if !ok {
+		return nil, errors.New("column 0 (entity_id) is not a String array")
+	}
+	eventCol, ok := record.Column(1).(*array.String)
+	if !ok {
+		return nil, errors.New("column 1 (event) is not a String array")
+	}
+	timestampCol, ok := record.Column(2).(*array.Float64)
+	if !ok {
+		return nil, errors.New("column 2 (timestamp) is not a Float64 array")
+	}
+	detailsCol, ok := record.Column(3).(*array.Map)
+	if !ok {
+		return nil, errors.New("column 3 (details) is not a Map array")
+	}
+	dataCol, ok := record.Column(4).(*array.Binary)
+	if !ok {
+		return nil, errors.New("column 4 (data) is not a Binary array")
+	}
+
+	events := make([]EventJSON, record.NumRows())
 
 	for i := int64(0); i < record.NumRows(); i++ {
 		idx := int(i)
+
+		// Bounds check for each column access
+		if idx >= entityIDCol.Len() || idx >= eventCol.Len() || idx >= timestampCol.Len() {
+			return nil, fmt.Errorf("index %d out of bounds for column data", idx)
+		}
+
 		events[idx] = EventJSON{
 			EntityID:  entityIDCol.Value(idx),
 			Event:     eventCol.Value(idx),
 			Timestamp: timestampCol.Value(idx),
 		}
 
-		if !detailsCol.IsNull(idx) {
+		if idx < detailsCol.Len() && !detailsCol.IsNull(idx) {
 			events[idx].Details = extractMapValues(detailsCol, idx)
 		}
 
-		if !dataCol.IsNull(idx) {
+		if idx < dataCol.Len() && !dataCol.IsNull(idx) {
 			events[idx].Data = dataCol.Value(idx)
 		}
 	}
