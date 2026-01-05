@@ -20,19 +20,43 @@ const (
 
 // ArrowServer is a TCP server that listens for Arrow IPC messages.
 type ArrowServer struct {
-	listener net.Listener
-	handler  *ArrowHandler
-	running  bool
-	mu       sync.Mutex
-	quit     chan struct{}
+	listener      net.Listener
+	handler       *ArrowHandler
+	authenticator *Authenticator
+	running       bool
+	mu            sync.Mutex
+	quit          chan struct{}
 }
 
 // NewArrowServer creates a new ArrowServer instance.
+// Authentication is configured via environment variables:
+//   - HIE_AUTH_ENABLED=true to enable authentication
+//   - HIE_AUTH_TOKEN=<token> to set a specific token (auto-generated if not set)
 func NewArrowServer() *ArrowServer {
 	return &ArrowServer{
-		handler: NewArrowHandler(),
-		quit:    make(chan struct{}),
+		handler:       NewArrowHandler(),
+		authenticator: NewAuthenticatorFromEnv(),
+		quit:          make(chan struct{}),
 	}
+}
+
+// NewArrowServerWithAuth creates a new ArrowServer with explicit auth config.
+func NewArrowServerWithAuth(authConfig AuthConfig) *ArrowServer {
+	return &ArrowServer{
+		handler:       NewArrowHandler(),
+		authenticator: NewAuthenticator(authConfig),
+		quit:          make(chan struct{}),
+	}
+}
+
+// IsAuthEnabled returns true if authentication is enabled.
+func (s *ArrowServer) IsAuthEnabled() bool {
+	return s.authenticator.IsEnabled()
+}
+
+// GetAuthToken returns the auth token (for admin display).
+func (s *ArrowServer) GetAuthToken() string {
+	return s.authenticator.GetToken()
 }
 
 // Start starts the Arrow server on the specified address.
@@ -138,6 +162,13 @@ func (s *ArrowServer) handleConnection(conn net.Conn) {
 		}
 	}()
 
+	// Authentication handshake (if enabled)
+	if s.authenticator.IsEnabled() {
+		if !s.performAuthHandshake(conn) {
+			return // Auth failed, connection closed
+		}
+	}
+
 	for {
 		// Set read deadline to prevent Slowloris-style attacks
 		if err := conn.SetReadDeadline(time.Now().Add(ConnectionReadTimeout)); err != nil {
@@ -174,4 +205,87 @@ func (s *ArrowServer) handleConnection(conn net.Conn) {
 			return
 		}
 	}
+}
+
+// performAuthHandshake performs token-based authentication handshake.
+// Returns true if auth succeeds, false otherwise.
+func (s *ArrowServer) performAuthHandshake(conn net.Conn) bool {
+	// Set deadline for auth handshake (shorter than normal)
+	if err := conn.SetReadDeadline(time.Now().Add(10 * time.Second)); err != nil {
+		return false
+	}
+
+	// Read auth message
+	data, err := ReadMessage(conn)
+	if err != nil {
+		s.sendAuthResponse(conn, false, "failed to read auth message")
+		return false
+	}
+
+	// Parse auth message (expecting JSON: {"type":"auth","token":"xxx"})
+	// Simple parsing without full JSON for performance
+	token := extractTokenFromAuthMessage(data)
+	if token == "" {
+		s.sendAuthResponse(conn, false, "invalid auth message format")
+		return false
+	}
+
+	// Validate token
+	if err := s.authenticator.ValidateToken(token); err != nil {
+		s.sendAuthResponse(conn, false, err.Error())
+		return false
+	}
+
+	// Auth success
+	s.sendAuthResponse(conn, true, "")
+	return true
+}
+
+// sendAuthResponse sends an authentication response to the client.
+func (s *ArrowServer) sendAuthResponse(conn net.Conn, success bool, errMsg string) {
+	if err := conn.SetWriteDeadline(time.Now().Add(5 * time.Second)); err != nil {
+		return
+	}
+
+	var response []byte
+	if success {
+		response = []byte(`{"success":true}`)
+	} else {
+		response = []byte(fmt.Sprintf(`{"success":false,"error":"%s"}`, errMsg))
+	}
+
+	// Ignore write errors - connection will be closed anyway if auth failed
+	_ = WriteMessage(conn, response)
+}
+
+// extractTokenFromAuthMessage extracts the token from an auth message.
+// Expected format: {"type":"auth","token":"<token>"}
+func extractTokenFromAuthMessage(data []byte) string {
+	// Simple string search for token field (avoids full JSON parsing overhead)
+	const tokenPrefix = `"token":"`
+	str := string(data)
+
+	idx := 0
+	for i := 0; i < len(str)-len(tokenPrefix); i++ {
+		if str[i:i+len(tokenPrefix)] == tokenPrefix {
+			idx = i + len(tokenPrefix)
+			break
+		}
+	}
+
+	if idx == 0 {
+		return ""
+	}
+
+	// Find end of token value
+	end := idx
+	for end < len(str) && str[end] != '"' {
+		end++
+	}
+
+	if end == idx || end >= len(str) {
+		return ""
+	}
+
+	return str[idx:end]
 }
