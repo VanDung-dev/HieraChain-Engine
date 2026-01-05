@@ -120,6 +120,13 @@ func (s *ArrowServer) Stop() {
 func (s *ArrowServer) handleConnection(conn net.Conn) {
 	defer conn.Close()
 
+	// Panic recovery to prevent one connection from crashing the entire server
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Printf("Panic in connection handler recovered: %v\n", r)
+		}
+	}()
+
 	for {
 		// 1. Read request message
 		data, err := ReadMessage(conn)
