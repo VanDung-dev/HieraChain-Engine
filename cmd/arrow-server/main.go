@@ -11,7 +11,8 @@ import (
 
 func main() {
 	// Simple entry point to run the Arrow Server
-	address := ":50051"
+	// Default to localhost only for security - prevents external access
+	address := "127.0.0.1:50051"
 	server := api.NewArrowServer()
 
 	log.Printf("Starting Arrow Server on %s...", address)
