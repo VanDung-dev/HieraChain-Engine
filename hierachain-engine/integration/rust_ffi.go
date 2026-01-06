@@ -2,9 +2,9 @@ package integration
 
 /*
 #cgo CFLAGS: -I${SRCDIR}/../include
-#cgo windows LDFLAGS: -L${SRCDIR}/../target/release -lhierachain_consensus -lws2_32 -luserenv -lbcrypt -lntdll
-#cgo linux LDFLAGS: -L${SRCDIR}/../target/release -lhierachain_consensus -lm -ldl -lpthread
-#cgo darwin LDFLAGS: -L${SRCDIR}/../target/release -lhierachain_consensus -framework Security -framework CoreFoundation
+#cgo windows LDFLAGS: -L${SRCDIR}/../../target/release -lhierachain_consensus -lws2_32 -luserenv -lbcrypt -lntdll
+#cgo linux LDFLAGS: -L${SRCDIR}/../../target/release -lhierachain_consensus -lm -ldl -lpthread
+#cgo darwin LDFLAGS: -L${SRCDIR}/../../target/release -lhierachain_consensus -framework Security -framework CoreFoundation
 
 #include <stdlib.h>
 #include <stdint.h>
