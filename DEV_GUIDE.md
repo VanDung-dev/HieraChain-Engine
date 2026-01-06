@@ -147,6 +147,26 @@ go test ./hierachain-engine/core/... -bench=. -benchmem
 go test ./... -race
 ```
 
+### End-to-End (E2E) Tests
+
+The project includes a comprehensive suite of E2E tests located in `tests/e2e/`. These tests verify the integration between different layers of the HieraChain ecosystem.
+
+| Layer | Test File | Description |
+|-------|-----------|-------------|
+| Layer 1 | `tests/e2e/test_layer1_fastapi.py` | Tests the FastAPI endpoint and JSON validation. |
+| Layer 2 | `tests/e2e/test_layer2_python_to_go_direct.py` | Tests direct communication from Python to the Go Engine via Arrow IPC. |
+| Layer 3 | `tests/e2e/test_layer3_go_engine.py` | Tests internal Go Engine processing, including Mempool and Arrow parsing. |
+| Layer 4 | `tests/e2e/test_layer4_go_rust_ffi.py` | Tests the FFI bridge between Go and Rust Core. |
+| Layer 5 | `tests/e2e/test_layer5_rust_python.py` | Tests direct Rust integration with Python via PyO3. |
+| Full Chain | `tests/e2e/test_full_chain.py` | Tests the complete data flow from JSON input to JSON response. |
+
+To run these tests, ensure you have the necessary Python dependencies installed and the HieraChain-Engine server running if required by the specific test.
+
+```bash
+# Run all E2E tests
+pytest tests/e2e/
+```
+
 ---
 
 ## Developer Scripts
