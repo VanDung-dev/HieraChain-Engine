@@ -34,15 +34,23 @@ func (h *ArrowHandler) ProcessBatch(data []byte) ([]byte, error) {
 	}
 	defer reader.Release()
 
-	// Read first record batch to ensure validity
+	if reader.Err() != nil {
+		return nil, fmt.Errorf("error reading Arrow stream: %w", reader.Err())
+	}
+
+	// Read first record batch to ensure validity and debug log
 	if reader.Next() {
 		rec := reader.Record()
 		rec.Retain()
 		defer rec.Release()
-	}
 
-	if reader.Err() != nil {
-		return nil, fmt.Errorf("error reading Arrow stream: %w", reader.Err())
+		fmt.Printf("[DEBUG] Go Engine Received Batch: %d rows, %d cols\n", rec.NumRows(), rec.NumCols())
+
+		// Preview first column (Tx ID)
+		if rec.NumCols() > 0 && rec.NumRows() > 0 {
+			col := rec.Column(0)
+			fmt.Printf("[DEBUG] Col 0 (%s): %v\n", rec.ColumnName(0), col)
+		}
 	}
 
 	return h.createSuccessResponse()
