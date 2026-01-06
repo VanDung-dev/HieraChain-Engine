@@ -33,6 +33,7 @@ jobs:
           config: |
             paths-ignore:
               - scripts/**
+              - tests/**
               - .github/**
 
       - name: Autobuild
