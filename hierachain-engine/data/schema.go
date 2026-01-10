@@ -90,6 +90,8 @@ func eventStructFields() []arrow.Field {
 //   - merkle_root: string - Merkle root of events
 //   - hash: string - Block hash
 //   - events: list<struct> - List of events in the block
+//   - zk_proof: binary - ZK proof bytes (for SubChain -> MainChain)
+//   - zk_public_inputs: binary - Public inputs for ZK verification
 func BlockSchema() *arrow.Schema {
 	eventStruct := arrow.StructOf(eventStructFields()...)
 
@@ -106,6 +108,9 @@ func BlockSchema() *arrow.Schema {
 				Type:     arrow.ListOf(eventStruct),
 				Nullable: true,
 			},
+			// ZK Proof fields for trustless verification
+			{Name: "zk_proof", Type: arrow.BinaryTypes.Binary, Nullable: true},
+			{Name: "zk_public_inputs", Type: arrow.BinaryTypes.Binary, Nullable: true},
 		},
 		nil,
 	)
@@ -113,6 +118,7 @@ func BlockSchema() *arrow.Schema {
 
 // TransactionSchema returns the Arrow schema for a Transaction.
 // Matches Rust: src/core/schemas.rs::get_transaction_schema()
+// Updated to include ZK Proof fields for trustless verification
 func TransactionSchema() *arrow.Schema {
 	return arrow.NewSchema(
 		[]arrow.Field{
@@ -130,6 +136,9 @@ func TransactionSchema() *arrow.Schema {
 				),
 				Nullable: true,
 			},
+			// ZK Proof fields for trustless verification
+			{Name: "zk_proof", Type: arrow.BinaryTypes.Binary, Nullable: true},
+			{Name: "zk_public_inputs", Type: arrow.BinaryTypes.Binary, Nullable: true},
 		},
 		nil,
 	)
